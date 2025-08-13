@@ -54,7 +54,5 @@
 
 	<key>NSUserNotificationUsageDescription</key>
 	<string>This app uses notifications to alert you about new lost or found items.</string>
-
-	<key>UIUserNotificationSettings</key>
 </dict>
 </plist>
