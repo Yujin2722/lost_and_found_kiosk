@@ -1,0 +1,61 @@
+name: lost_and_found_kiosk
+description: "A new Flutter project."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_launcher_icons: ^0.14.3
+  google_fonts: ^6.2.1
+  video_player: ^2.9.5
+  shared_preferences: ^2.5.3
+  flutter_local_notifications: ^19.4.0
+  permission_handler: ^12.0.1
+  device_info_plus: ^11.5.0
+  intl: ^0.20.2
+  http: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/app_icon.png
+    - assets/videos/splash_screen.mp4
+    - assets/images/logo_orange.png
+    - assets/images/logo_white.png
+    - assets/images/tcc_background.png
+    - assets/icons/umbrella_orange.png
+    - assets/icons/wallet_orange.png
+    - assets/icons/phone_orange.png
+    - assets/icons/calculator_orange.png
+    - assets/icons/random_orange.png
+    - assets/icons/umbrella_black.png
+    - assets/icons/wallet_black.png
+    - assets/icons/phone_black.png
+    - assets/icons/calculator_black.png
+    - assets/icons/random_black.png
+    - assets/images/logo_kiosk1.png
+
+  fonts:
+    - family: Nexa
+      fonts:
+        - asset: assets/fonts/Nexa-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Nexa-Heavy.ttf
+          weight: 700
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
