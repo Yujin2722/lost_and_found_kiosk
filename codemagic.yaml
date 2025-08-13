@@ -1,6 +1,6 @@
 workflows:
-  build:
-    name: Build iOS and Android
+  build_ios:
+    name: Build iOS IPA
     max_build_duration: 60
     environment:
       flutter: stable
@@ -9,10 +9,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Build Android APK
-        script: flutter build apk --release
-      - name: Build iOS IPA
+      - name: Build iOS (no code signing)
         script: flutter build ios --release --no-codesign
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
-      - build/ios/iphoneos/*.ipa
+      - build/ios/iphoneos/*.app
+      - build/ios/ipa/*.ipa
