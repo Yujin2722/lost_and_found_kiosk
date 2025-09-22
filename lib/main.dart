@@ -9,6 +9,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dashboard/home_page.dart';
 import 'dashboard/found_page.dart';
 import 'dashboard/lost_page.dart';
+import 'dashboard/notifications_page.dart';
+import 'dashboard/claimed_page.dart';
 import 'services/splash_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -51,6 +53,8 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/found': (context) => const FoundPage(),
         '/lost': (context) => const LostPage(),
+        '/notifications': (context) => const NotificationsPage(),
+        '/claimed': (context) => const ClaimedPage(),
       },
     );
   }

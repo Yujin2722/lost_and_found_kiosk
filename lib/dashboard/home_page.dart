@@ -5,8 +5,12 @@ import 'dart:convert';
 import 'dart:async';
 
 import '../services/notification_service.dart';
+import '../services/notification_storage.dart';
+import 'claimed_page.dart';
 import 'found_page.dart';
 import 'lost_page.dart';
+import 'notifications_page.dart';
+import '../services/user_guide_pdf_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,7 +34,7 @@ class _HomePageState extends State<HomePage> {
     NotificationService.init();
     _pageController = PageController();
     fetchItems();
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 15), (timer) {
       fetchItems();
     });
   }
@@ -49,57 +53,95 @@ class _HomePageState extends State<HomePage> {
     _pageController.jumpToPage(index);
   }
 
+  bool _hasLoadedOnce = false;
+
   Future<void> fetchItems() async {
     try {
-      final foundRes = await http.get(
-        Uri.parse("http://192.168.1.12:5001/found-items"), //  CHANGE IP
-      );
-      final lostRes = await http.get(
-        Uri.parse("http://192.168.1.12:5001/lost-items"), //  CHANGE IP
-      );
+      final responses = await Future.wait([
+        http.get(Uri.parse("https://60c4fd2e22e0.ngrok-free.app/found-items")),
+        http.get(Uri.parse("https://60c4fd2e22e0.ngrok-free.app/lost-items")),
+      ]);
+
+      final foundRes = responses[0];
+      final lostRes = responses[1];
 
       if (foundRes.statusCode == 200 && lostRes.statusCode == 200) {
         final newFoundItems = json.decode(foundRes.body) as List;
         final newLostItems = json.decode(lostRes.body) as List;
 
-        final oldFoundIds = foundItems.map((e) => e['id']).toSet();
-        final newFoundIds = newFoundItems.map((e) => e['id']).toSet();
+        if (_hasLoadedOnce) {
+          final oldFoundIds = foundItems.map((e) => e['id']).toSet();
+          final newFoundIds = newFoundItems.map((e) => e['id']).toSet();
+          final addedFoundIds = newFoundIds.difference(oldFoundIds);
 
-        final addedFoundIds = newFoundIds.difference(oldFoundIds);
-
-        if (addedFoundIds.isNotEmpty) {
-          final addedItem = newFoundItems.firstWhere(
+          for (var addedItem in newFoundItems.where(
             (item) => addedFoundIds.contains(item['id']),
-          );
-          NotificationService.showNotification(
-            title: "New Found Item",
-            body: "${addedItem['category']} - ${addedItem['description']}",
-          );
-        }
+          )) {
+            final fullBody =
+                "${addedItem['tcc_number']} reported found\n"
+                "${addedItem['category']} - ${addedItem['description']}\n"
+                "Claim your item within 5 days, otherwise it will be removed from the kiosk.\n"
+                "Kindly coordinate with the CSU to retrieve your item.";
 
-        final oldLostIds = lostItems.map((e) => e['id']).toSet();
-        final newLostIds = newLostItems.map((e) => e['id']).toSet();
+            final shortBody =
+                "${addedItem['category']} - ${addedItem['description']}\n"
+                "Kindly check if the item is yours.";
 
-        final addedLostIds = newLostIds.difference(oldLostIds);
+            NotificationService.showNotification(
+              title: "New Found Item",
+              body: shortBody,
+            );
 
-        if (addedLostIds.isNotEmpty) {
-          final addedItem = newLostItems.firstWhere(
+            await NotificationStorage.saveNotification(
+              "New Found Item",
+              fullBody,
+            );
+          }
+
+          final oldLostIds = lostItems.map((e) => e['id']).toSet();
+          final newLostIds = newLostItems.map((e) => e['id']).toSet();
+          final addedLostIds = newLostIds.difference(oldLostIds);
+
+          for (var addedItem in newLostItems.where(
             (item) => addedLostIds.contains(item['id']),
-          );
-          NotificationService.showNotification(
-            title: "New Lost Item",
-            body: "${addedItem['category']} - ${addedItem['description']}",
-          );
+          )) {
+            final fullBody =
+                "${addedItem['tcc_number']} reported lost\n"
+                "${addedItem['category']} - ${addedItem['description']}\n"
+                "Claim your item within 5 days, otherwise it will be removed from the kiosk.\n"
+                "Kindly coordinate with the CSU to retrieve your item.";
+
+            final shortBody =
+                "${addedItem['category']} - ${addedItem['description']}\n"
+                "Kindly check if the item is yours.";
+
+            NotificationService.showNotification(
+              title: "New Lost Item",
+              body: shortBody,
+            );
+
+            await NotificationStorage.saveNotification(
+              "New Lost Item",
+              fullBody,
+            );
+          }
         }
 
         setState(() {
           foundItems = newFoundItems;
           lostItems = newLostItems;
-          isLoading = false;
         });
+
+        _hasLoadedOnce = true;
+      }
+
+      if (isLoading) {
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      setState(() => isLoading = false);
+      if (isLoading) {
+        setState(() => isLoading = false);
+      }
       print("Error fetching items: $e");
     }
   }
@@ -130,39 +172,57 @@ class _HomePageState extends State<HomePage> {
             _selectedIndex = index;
           });
         },
-        children: [_buildHomeContent(), const FoundPage(), const LostPage()],
+        children: [
+          _buildHomeContent(),
+          const FoundPage(),
+          const LostPage(),
+          const ClaimedPage(),
+        ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: const Color.fromARGB(255, 0, 0, 0).withValues(alpha: 0.1),
-              blurRadius: 6,
-              offset: const Offset(0, -3),
-            ),
-          ],
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          selectedItemColor: const Color.fromRGBO(240, 86, 38, 1),
-          unselectedItemColor: const Color.fromARGB(255, 84, 103, 89),
-          onTap: _onItemTapped,
-          items: [
-            _buildNavItem(Icons.home, 'Home', 0),
-            _buildNavItem(Icons.search, 'Found', 1),
-            _buildNavItem(Icons.search_off, 'Lost', 2),
-          ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromARGB(
+                  255,
+                  0,
+                  0,
+                  0,
+                ).withValues(alpha: 0.1),
+                blurRadius: 6,
+                offset: const Offset(0, -3),
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            selectedItemColor: const Color.fromRGBO(240, 86, 38, 1),
+            unselectedItemColor: const Color.fromARGB(255, 84, 103, 89),
+            onTap: _onItemTapped,
+            items: [
+              _buildNavItem(Icons.home, 'Home', 0),
+              _buildNavItem(Icons.search, 'Found', 1),
+              _buildNavItem(Icons.search_off, 'Lost', 2),
+              _buildNavItem(Icons.outbox_rounded, 'Claimed', 3),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHomeContent() {
-    if (isLoading) {
+    if (isLoading && foundItems.isEmpty && lostItems.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -179,7 +239,12 @@ class _HomePageState extends State<HomePage> {
               Container(
                 height: 240,
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
-                color: Colors.white.withAlpha((0.7 * 255).toInt()),
+                color: const Color.fromARGB(
+                  255,
+                  0,
+                  0,
+                  0,
+                ).withAlpha((0.7 * 255).toInt()),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -192,16 +257,38 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.help,
-                              color: Colors.black,
-                              size: 32,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => const UserGuidePdfPage(),
+                                  ),
+                                );
+                              },
+                              child: Image.asset(
+                                'assets/icons/help.gif',
+                                width: 32,
+                                height: 32,
+                              ),
                             ),
+
                             const SizedBox(width: 20),
-                            const Icon(
-                              Icons.notifications,
-                              color: Colors.black,
-                              size: 32,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => NotificationsPage(),
+                                  ),
+                                );
+                              },
+                              child: Image.asset(
+                                'assets/icons/notification.gif',
+                                width: 32,
+                                height: 32,
+                              ),
                             ),
                           ],
                         ),
@@ -210,7 +297,11 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 20),
                     const Text(
                       "Hi there TCCians!",
-                      style: TextStyle(color: Colors.black, fontSize: 24),
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        fontSize: 24,
+                        fontWeight: FontWeight.normal,
+                      ),
                     ),
                     RichText(
                       text: const TextSpan(
@@ -226,7 +317,7 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.normal,
-                              color: Colors.black,
+                              color: Color.fromARGB(255, 255, 255, 255),
                             ),
                           ),
                           TextSpan(
@@ -234,7 +325,7 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Color.fromARGB(255, 255, 255, 255),
                             ),
                           ),
                           TextSpan(
@@ -242,7 +333,7 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.normal,
-                              color: Colors.black,
+                              color: Color.fromARGB(255, 254, 254, 254),
                             ),
                           ),
                           TextSpan(
@@ -258,7 +349,7 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.normal,
-                              color: Colors.black,
+                              color: Color.fromARGB(255, 255, 255, 255),
                             ),
                           ),
                         ],
@@ -274,10 +365,6 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               color: Color.fromRGBO(240, 86, 38, 1),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
-              ),
             ),
             child: Text(
               "Recent Updates (${DateFormat('MM-dd-yyyy').format(DateTime.now())})",
@@ -318,6 +405,39 @@ class _HomePageState extends State<HomePage> {
                     .toList(),
             onSeeAllTap: () => _onItemTapped(2),
           ),
+          Card(
+            color: const Color(0xFFFFF3E6),
+            elevation: 0,
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo_orange.png',
+                    width: 38,
+                    height: 38,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '"You shall not steal; you shall not deal falsely; you shall not lie to one another."\n— Exodus 20:15-16',
+                      style: const TextStyle(
+                        color: Color.fromRGBO(240, 86, 38, 1),
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -339,7 +459,7 @@ class _HomePageState extends State<HomePage> {
               margin: const EdgeInsets.only(top: 4),
               height: 3,
               width: 20,
-              color: const Color.fromRGBO(240, 86, 38, 1),
+              color: const Color(0xFFF05626),
             ),
         ],
       ),

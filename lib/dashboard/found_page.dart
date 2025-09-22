@@ -11,7 +11,19 @@ class FoundPage extends StatefulWidget {
 
 class _FoundPageState extends State<FoundPage> {
   List<dynamic> foundItems = [];
+  List<dynamic> filteredItems = [];
   bool isLoading = true;
+
+  final List<String> categories = [
+    'All',
+    'Wallet',
+    'Umbrella',
+    'Calculator',
+    'Phone',
+    'Random',
+  ];
+
+  String selectedCategory = "All";
 
   @override
   void initState() {
@@ -22,11 +34,13 @@ class _FoundPageState extends State<FoundPage> {
   Future<void> fetchFoundItems() async {
     try {
       final response = await http.get(
-        Uri.parse("http://192.168.1.12:5001/found-items"), //  CHANGE IP
+        Uri.parse("https://60c4fd2e22e0.ngrok-free.app/found-items"),
       );
       if (response.statusCode == 200) {
+        final items = json.decode(response.body);
         setState(() {
-          foundItems = json.decode(response.body);
+          foundItems = items;
+          applyFilter();
           isLoading = false;
         });
       } else {
@@ -38,6 +52,23 @@ class _FoundPageState extends State<FoundPage> {
       });
       print("Error: $e");
     }
+  }
+
+  void applyFilter() {
+    setState(() {
+      if (selectedCategory == "All") {
+        filteredItems = foundItems;
+      } else {
+        filteredItems =
+            foundItems
+                .where(
+                  (item) =>
+                      item['category'].toString().toLowerCase() ==
+                      selectedCategory.toLowerCase(),
+                )
+                .toList();
+      }
+    });
   }
 
   @override
@@ -59,11 +90,52 @@ class _FoundPageState extends State<FoundPage> {
             ),
           ],
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 12, top: 10, bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            constraints: const BoxConstraints(minHeight: 30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Color.fromRGBO(240, 86, 38, 1),
+                width: 1.5,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedCategory,
+                icon: const Icon(
+                  Icons.filter_list,
+                  size: 18,
+                  color: Color.fromRGBO(240, 86, 38, 1),
+                ),
+                dropdownColor: Colors.white,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color.fromRGBO(240, 86, 38, 1),
+                  fontWeight: FontWeight.bold,
+                ),
+                items:
+                    categories.map((cat) {
+                      return DropdownMenuItem(value: cat, child: Text(cat));
+                    }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    selectedCategory = value;
+                    applyFilter();
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator())
-              : foundItems.isEmpty
+              : filteredItems.isEmpty
               ? RefreshIndicator(
                 onRefresh: fetchFoundItems,
                 child: ListView(
@@ -83,9 +155,9 @@ class _FoundPageState extends State<FoundPage> {
                 onRefresh: fetchFoundItems,
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: foundItems.length,
+                  itemCount: filteredItems.length,
                   itemBuilder: (context, index) {
-                    final item = foundItems[index];
+                    final item = filteredItems[index];
                     return itemCard(
                       getIconPath(item['category']),
                       item['tcc_number'],
@@ -115,45 +187,68 @@ class _FoundPageState extends State<FoundPage> {
           BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(2, 2)),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              iconPath,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  iconPath,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      "Category: $category",
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      tccNumber,
+                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  "Category: $category",
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Found',
+                style: TextStyle(
+                  color: Color.fromRGBO(239, 108, 0, 1),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  tccNumber,
-                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
             ),
           ),
         ],

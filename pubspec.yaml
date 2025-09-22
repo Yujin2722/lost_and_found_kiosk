@@ -11,20 +11,22 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   flutter_launcher_icons: ^0.14.3
-  google_fonts: ^6.2.1
+  google_fonts: 6.3.1
   video_player: ^2.9.5
   shared_preferences: ^2.5.3
-  flutter_local_notifications: ^19.4.0
+  flutter_local_notifications: 19.4.2
   permission_handler: ^12.0.1
-  device_info_plus: ^11.5.0
+  device_info_plus: 12.1.0
   intl: ^0.20.2
   http: ^1.5.0
+  flutter_pdfview: ^1.4.0+1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^5.0.0
+  flutter_lints: 6.0.0
 
 flutter:
   uses-material-design: true
@@ -46,6 +48,9 @@ flutter:
     - assets/icons/calculator_black.png
     - assets/icons/random_black.png
     - assets/images/logo_kiosk1.png
+    - assets/files/tutorial.pdf
+    - assets/icons/help.gif
+    - assets/icons/notification.gif
 
   fonts:
     - family: Nexa
