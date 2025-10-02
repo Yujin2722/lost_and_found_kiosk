@@ -58,8 +58,8 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchItems() async {
     try {
       final responses = await Future.wait([
-        http.get(Uri.parse("https://60c4fd2e22e0.ngrok-free.app/found-items")),
-        http.get(Uri.parse("https://60c4fd2e22e0.ngrok-free.app/lost-items")),
+        http.get(Uri.parse("https://throneless-ebony-billety.ngrok-free.dev/found-items")),
+        http.get(Uri.parse("https://throneless-ebony-billety.ngrok-free.dev/lost-items")),
       ]);
 
       final foundRes = responses[0];

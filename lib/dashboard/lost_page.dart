@@ -34,12 +34,12 @@ class _LostPageState extends State<LostPage> {
   Future<void> fetchLostItems() async {
     try {
       final response = await http.get(
-        Uri.parse("https://60c4fd2e22e0.ngrok-free.app/lost-items"),
+        Uri.parse("https://throneless-ebony-billety.ngrok-free.dev/lost-items"),
       );
       if (response.statusCode == 200) {
         final items = json.decode(response.body);
         setState(() {
-          lostItems = items;
+          lostItems = List.from(items.reversed);
           applyFilter();
           isLoading = false;
         });

@@ -35,13 +35,13 @@ class _ClaimedPageState extends State<ClaimedPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          "https://60c4fd2e22e0.ngrok-free.app/claims",
+          "https://throneless-ebony-billety.ngrok-free.dev/claims",
         ), 
       );
       if (response.statusCode == 200) {
         final items = json.decode(response.body);
         setState(() {
-          claims = items;
+          claims = List.from(items.reversed);
           isLoading = false;
         });
       } else {

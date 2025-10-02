@@ -34,12 +34,12 @@ class _FoundPageState extends State<FoundPage> {
   Future<void> fetchFoundItems() async {
     try {
       final response = await http.get(
-        Uri.parse("https://60c4fd2e22e0.ngrok-free.app/found-items"),
+        Uri.parse("https://throneless-ebony-billety.ngrok-free.dev/found-items"),
       );
       if (response.statusCode == 200) {
         final items = json.decode(response.body);
         setState(() {
-          foundItems = items;
+          foundItems = List.from(items.reversed);
           applyFilter();
           isLoading = false;
         });
